@@ -18,7 +18,6 @@
 #include <cstddef>
 #include <memory>
 #include <utility>
-#include <iostream>
 
 namespace tndm {
 
@@ -78,18 +77,15 @@ public:
         auto result_handle = result.begin_access();
         VMax_ = 0.0;
         scratch_.reset();
-        double aggregate = 0.0;
-        std::cout<<"Local Moment calculation ";
         for (std::size_t faultNo = 0, num = num_local_elements(); faultNo < num; ++faultNo) {
             auto traction_block = traction_handle.subtensor(slice{}, faultNo);
             auto state_block = state_handle.subtensor(slice{}, faultNo);
             auto result_block = result_handle.subtensor(slice{}, faultNo);
-            
             double VMax =
-                lop_->rhs(time, faultNo, traction_block, state_block, result_block, scratch_, aggregate);
+                lop_->rhs(time, faultNo, traction_block, state_block, result_block, scratch_);
+
             VMax_ = std::max(VMax_, VMax);
         }
-        std::cout<<"Total Moment = "<<aggregate<<" \n";
         result.end_access(result_handle);
         state.end_access_readonly(state_handle);
         traction.end_access_readonly(traction_handle);

@@ -5,16 +5,14 @@
 #include "config.h"
 
 #include "geometry/Vector.h"
-#include "quadrules/AutoRule.h"
-#include "tensor/EigenMap.h"
 #include "tensor/Reshape.h"
 #include "tensor/Tensor.h"
 #include "util/LinearAllocator.h"
+
 #include <array>
 #include <cstddef>
 #include <cstdio>
 #include <functional>
-#include <iostream>
 #include <optional>
 
 namespace tndm {
@@ -30,8 +28,7 @@ public:
         std::function<std::array<double, 1>(std::array<double, DomainDimension + 1> const&)>;
     using delta_tau_fun_t = std::function<std::array<double, TangentialComponents>(
         std::array<double, DomainDimension + 1> const&)>;
-    using delta_sn_fun_t =
-        std::function<std::array<double, 1>(std::array<double, DomainDimension + 1> const&)>;
+    using delta_sn_fun_t = std::function<std::array<double, 1>(std::array<double, DomainDimension + 1> const&)>;
 
     void set_constant_params(typename Law::ConstantParams const& cps) {
         law_.set_constant_params(cps);
@@ -58,7 +55,7 @@ public:
                 Vector<double>& state, LinearAllocator<double>&) const;
 
     double rhs(double time, std::size_t faultNo, Vector<double const> const& traction,
-               Vector<double const>& state, Vector<double>& result, LinearAllocator<double>&, double&) const;
+               Vector<double const>& state, Vector<double>& result, LinearAllocator<double>&) const;
 
     auto state_prototype(std::size_t numLocalElements) const;
     void state(double time, std::size_t faultNo, Vector<double const> const& traction,
@@ -148,73 +145,21 @@ double RateAndState<Law>::init(double time, std::size_t faultNo,
     return VMax;
 }
 
-// Utility function for matrix multiplication
-Managed<Matrix<double>> matmul(const Managed<Matrix<double>>& A, const Managed<Matrix<double>>& B) {
-    std::size_t rows = A.shape(0);
-    std::size_t cols = B.shape(1);
-    std::size_t inner = A.shape(1);
-    Managed<Matrix<double>> result(rows, cols);
-
-    for (std::size_t i = 0; i < rows; ++i) {
-        for (std::size_t j = 0; j < cols; ++j) {
-            result(i, j) = 0.0;
-            for (std::size_t k = 0; k < inner; ++k) {
-                result(i, j) += A(i, k) * B(k, j);
-            }
-        }
-    }
-    return result;
-}
-
-double dot_product(const Managed<Matrix<double>>& col, const std::vector<double>& vec) {
-    if (col.shape()[0] != vec.size()) {
-        throw std::invalid_argument("Size mismatch between column and vector.");
-    }
-
-    double result = 0.0;
-
-    for (std::size_t i = 0; i < vec.size(); ++i) {
-        std::cout << col(i, 0) << " " << vec[i] << std::endl;
-        result += col(i, 0) * vec[i];
-    }
-    return result;
-}
-
-// Dot each column of a Managed matrix with std::vector<double>
-std::vector<double> dot_columns_with_vector(const Managed<Matrix<double>>& C,
-                                            const std::vector<double>& V) {
-    std::vector<double> results(C.shape()[1]);
-
-    for (std::size_t j = 0; j < C.shape()[1]; ++j) {
-        Managed<Matrix<double>> col(15, 1);
-        //     // Extract a column from C
-        for (std::size_t i = 0; i < C.shape()[0]; ++i) {
-            col(i, j) = C(i, j);
-            std::cout << i << " " << j << " " << C(i, j) << std::endl;
-        }
-        // results[j] = dot_product(col, V);
-    }
-    return results; // Return the dot product of each column with V
-}
-
 template <class Law>
 double RateAndState<Law>::rhs(double time, std::size_t faultNo,
                               Vector<double const> const& traction, Vector<double const>& state,
-                              Vector<double>& result, LinearAllocator<double>&, double& aggregateTotal) const {
-
-    // auto transformation_matrix
+                              Vector<double>& result, LinearAllocator<double>&) const {
     double VMax = 0.0;
     std::size_t nbf = space_.numBasisFunctions();
     std::size_t index = faultNo * nbf;
     auto s_mat = state_mat(state);
     auto r_mat = state_mat(result);
     auto t_mat = traction_mat(traction);
-    Managed<Matrix<double>> slip_rates(nbf, TangentialComponents);
     for (std::size_t node = 0; node < nbf; ++node) {
         auto sn = t_mat(node, 0);
-        if (delta_sn_) {
+	if (delta_sn_) {
             sn = sn + get_delta_sn(time, faultNo, node);
-        }
+	}
         auto psi = s_mat(node, PsiIndex);
         auto tau = get_tau(node, t_mat);
         if (delta_tau_) {
@@ -223,24 +168,11 @@ double RateAndState<Law>::rhs(double time, std::size_t faultNo,
         auto Vi = law_.slip_rate(index + node, sn, tau, psi);
         double V = norm(Vi);
         VMax = std::max(VMax, V);
-
         for (std::size_t t = 0; t < TangentialComponents; ++t) {
             r_mat(node, t) = Vi[t];
-            slip_rates(node, t) = Vi[t];
         }
-        r_mat(node, PsiIndex) = law_.state_rhs(index + node, V, psi); // 10 x 2
+        r_mat(node, PsiIndex) = law_.state_rhs(index + node, V, psi);
     }
-    auto weights = allWeightDetProducts[faultNo];
-    auto slip_rate_q = matmul(interpolate_matrix_basis_to_quad, slip_rates);
-    auto total = 0.0;
-    std::array<double, 2> sum = {0.0, 0.0};
-    for (int i = 0; i < slip_rate_q.shape(1); i++) {
-        for (int j = 0; j < slip_rate_q.shape(0); j++) {
-            sum[i] += slip_rate_q(j, i) * weights[j];
-        }
-    }
-    total = sqrt(sum[0] * sum[0] + sum[1] * sum[1]) * 1e6 * 32.04 * 1e9;
-    aggregateTotal += total;
     if (source_) {
         auto coords = fault_[faultNo].template get<Coords>();
         std::array<double, DomainDimension + 1> xt;
@@ -286,9 +218,9 @@ void RateAndState<Law>::state(double time, std::size_t faultNo,
     std::size_t index = faultNo * nbf;
     for (std::size_t node = 0; node < nbf; ++node) {
         auto sn = t_mat(node, 0);
-        if (delta_sn_) {
+	if (delta_sn_) {
             sn = sn + get_delta_sn(time, faultNo, node);
-        }
+	}
         auto tau = get_tau(node, t_mat);
         if (delta_tau_) {
             tau = tau + get_delta_tau(time, faultNo, node);
