@@ -7,8 +7,10 @@
 #include "form/FiniteElementFunction.h"
 #include "form/RefElement.h"
 #include "geometry/Curvilinear.h"
+#include "quadrules/AutoRule.h"
 #include "tensor/Managed.h"
 #include "tensor/Tensor.h"
+#include "tensor/TensorBase.h"
 #include "util/LinearAllocator.h"
 
 #include "mneme/storage.hpp"
@@ -50,6 +52,14 @@ protected:
     NodalRefElement<DomainDimension - 1u> space_;
     std::vector<Managed<Matrix<double>>> geoE_q;
 
+    std::vector<double> wgts;
+    std::vector<std::array<double, 2>> pts;
+    Managed<Matrix<double>>
+        interpolate_matrix_basis_to_quad; // = space_.evaluateBasisAt(space_.refNodes(),{1,0});
+    //
+    std::vector<Managed<Tensor<double, 3u>>> geoDxi_q;
+    std::vector<std::vector<double>> allDeterminantJ;
+    std::vector<std::vector<double>> allWeightDetProducts;
     struct Coords {
         using type = std::array<double, DomainDimension>;
     };
