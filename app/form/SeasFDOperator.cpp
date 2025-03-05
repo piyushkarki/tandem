@@ -51,8 +51,9 @@ void SeasFDOperator::initial_condition(BlockVector& v, BlockVector& u, BlockVect
     friction_->init(0.0, traction_, s);
 }
 
-void SeasFDOperator::rhs(double time, BlockVector const& v, BlockVector const& u,
-                         BlockVector const& s, BlockVector& dv, BlockVector& du, BlockVector& ds) {
+void SeasFDOperator::rhs(double& aggregator, double time, BlockVector const& v,
+                         BlockVector const& u, BlockVector const& s, BlockVector& dv,
+                         BlockVector& du, BlockVector& ds) {
     profile_.begin(r_dv);
     state_scatter_.begin_scatter(s, state_ghost_);
     disp_scatter_.begin_scatter(u, disp_ghost_);
@@ -84,7 +85,7 @@ void SeasFDOperator::rhs(double time, BlockVector const& v, BlockVector const& u
     profile_.begin(r_ds);
     disp_scatter_.wait_scatter();
     update_traction(u, s);
-    friction_->rhs(time, traction_, s, ds);
+    friction_->rhs(aggregator, time, traction_, s, ds);
     profile_.end(r_ds, flops_ds);
 }
 

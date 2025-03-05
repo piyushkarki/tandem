@@ -71,25 +71,24 @@ public:
         traction.end_access_readonly(traction_handle);
     }
 
-    void rhs(double time, BlockVector const& traction, BlockVector const& state,
+    void rhs(double& aggregator, double time, BlockVector const& traction, BlockVector const& state,
              BlockVector& result) override {
         auto traction_handle = traction.begin_access_readonly();
         auto state_handle = state.begin_access_readonly();
         auto result_handle = result.begin_access();
         VMax_ = 0.0;
         scratch_.reset();
-        double aggregate = 0.0;
-        std::cout<<"Local Moment calculation ";
         for (std::size_t faultNo = 0, num = num_local_elements(); faultNo < num; ++faultNo) {
             auto traction_block = traction_handle.subtensor(slice{}, faultNo);
             auto state_block = state_handle.subtensor(slice{}, faultNo);
             auto result_block = result_handle.subtensor(slice{}, faultNo);
             
             double VMax =
-                lop_->rhs(time, faultNo, traction_block, state_block, result_block, scratch_, aggregate);
+                lop_->rhs(aggregator, time, faultNo, traction_block, state_block, result_block, scratch_);
             VMax_ = std::max(VMax_, VMax);
         }
-        std::cout<<"Total Moment = "<<aggregate<<" \n";
+        // TS post hook - time integrator 
+        // Callback already provided for the output
         result.end_access(result_handle);
         state.end_access_readonly(state_handle);
         traction.end_access_readonly(traction_handle);

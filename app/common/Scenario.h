@@ -29,6 +29,7 @@ public:
     constexpr static char Force[] = "force";
     constexpr static char Boundary[] = "boundary";
     constexpr static char Slip[] = "slip";
+    constexpr static char SlipRaTE[] = "slip_rate";
     constexpr static char Solution[] = "solution";
     constexpr static char SolutionJacobian[] = "solution_jacobian";
 
@@ -79,6 +80,7 @@ public:
     auto const& force() const { return force_; }
     auto const& boundary() const { return boundary_; }
     auto const& slip() const { return slip_; }
+    auto const& slip_rate() const { return slip_rate_; }
     std::unique_ptr<SolutionInterface> solution() const {
         if (solution_) {
             return std::make_unique<LambdaSolution<decltype(*solution_)>>(*solution_);
@@ -112,6 +114,7 @@ protected:
     std::optional<functional_t<NumQuantities>> force_ = std::nullopt;
     std::optional<functional_t<NumQuantities>> boundary_ = std::nullopt;
     std::optional<functional_t<NumQuantities>> slip_ = std::nullopt;
+    std::optional<functional_t<NumQuantities>> slip_rate_ = std::nullopt;
     std::optional<solution_t> solution_ = std::nullopt;
     std::optional<solution_jacobian_t> solution_jacobian_ = std::nullopt;
 };

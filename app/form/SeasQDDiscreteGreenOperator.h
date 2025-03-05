@@ -40,10 +40,9 @@ public:
         base::friction().init(0.0, base::traction_, state);
     }
 
-    inline void rhs(double time, BlockVector const& state, BlockVector& result) {
+    inline void rhs(double& aggregator, double time, BlockVector const& state, BlockVector& result) {
         update_traction(time, state);
-
-        base::friction().rhs(time, base::traction_, state, result);
+        base::friction().rhs(aggregator, time, base::traction_, state, result);
     }
 
     void update_internal_state(double time, BlockVector const& state,

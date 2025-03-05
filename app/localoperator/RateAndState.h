@@ -57,8 +57,8 @@ public:
     double init(double time, std::size_t faultNo, Vector<double const> const& traction,
                 Vector<double>& state, LinearAllocator<double>&) const;
 
-    double rhs(double time, std::size_t faultNo, Vector<double const> const& traction,
-               Vector<double const>& state, Vector<double>& result, LinearAllocator<double>&, double&) const;
+    double rhs(double& aggregator, double time, std::size_t faultNo, Vector<double const> const& traction,
+               Vector<double const>& state, Vector<double>& result, LinearAllocator<double>&) const;
 
     auto state_prototype(std::size_t numLocalElements) const;
     void state(double time, std::size_t faultNo, Vector<double const> const& traction,
@@ -198,11 +198,9 @@ std::vector<double> dot_columns_with_vector(const Managed<Matrix<double>>& C,
 }
 
 template <class Law>
-double RateAndState<Law>::rhs(double time, std::size_t faultNo,
+double RateAndState<Law>::rhs(double& aggregator, double time, std::size_t faultNo,
                               Vector<double const> const& traction, Vector<double const>& state,
-                              Vector<double>& result, LinearAllocator<double>&, double& aggregateTotal) const {
-
-    // auto transformation_matrix
+                              Vector<double>& result, LinearAllocator<double>&) const {
     double VMax = 0.0;
     std::size_t nbf = space_.numBasisFunctions();
     std::size_t index = faultNo * nbf;
@@ -240,7 +238,7 @@ double RateAndState<Law>::rhs(double time, std::size_t faultNo,
         }
     }
     total = sqrt(sum[0] * sum[0] + sum[1] * sum[1]) * 1e6 * 32.04 * 1e9;
-    aggregateTotal += total;
+    aggregator += total;
     if (source_) {
         auto coords = fault_[faultNo].template get<Coords>();
         std::array<double, DomainDimension + 1> xt;

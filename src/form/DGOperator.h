@@ -187,6 +187,7 @@ public:
     }
 
     void rhs(BlockVector& vector) override {
+
         auto bs = lop_->block_size();
 
         auto b_size = LinearAllocator<double>::allocation_size(bs, lop_->alignment());

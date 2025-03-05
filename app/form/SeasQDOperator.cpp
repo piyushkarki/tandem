@@ -31,12 +31,13 @@ void SeasQDOperator::initial_condition(BlockVector& state) {
     friction_->init(0.0, traction_, state);
 }
 
-void SeasQDOperator::rhs(double time, BlockVector const& state, BlockVector& result) {
+void SeasQDOperator::rhs(double& aggregator, double time, BlockVector const& state, BlockVector& result) {
     update_ghost_state(state);
     solve(time, make_state_view(state));
     update_traction(make_state_view(state));
 
-    friction_->rhs(time, traction_, state, result);
+
+    friction_->rhs(aggregator, time, traction_, state, result);
 }
 
 void SeasQDOperator::update_internal_state(double time, BlockVector const& state,

@@ -67,7 +67,7 @@ public:
 
     double cfl_time_step() const;
     void initial_condition(BlockVector& v, BlockVector& u, BlockVector& s);
-    void rhs(double time, BlockVector const& v, BlockVector const& u, BlockVector const& s,
+    void rhs(double& aggregator, double time, BlockVector const& v, BlockVector const& u, BlockVector const& s,
              BlockVector& dv, BlockVector& du, BlockVector& ds);
 
     auto domain_function(BlockVector const& x, std::vector<std::size_t> const& subset) const {

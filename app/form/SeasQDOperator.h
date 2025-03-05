@@ -54,7 +54,7 @@ public:
     inline AbstractFrictionOperator const& friction() const { return *friction_; }
 
     void initial_condition(BlockVector& state);
-    void rhs(double time, BlockVector const& state, BlockVector& result);
+    void rhs(double& aggregator, double time, BlockVector const& state, BlockVector& result);
     virtual void update_internal_state(double time, BlockVector const& state,
                                        bool state_changed_since_last_rhs, bool require_traction,
                                        bool require_displacement);

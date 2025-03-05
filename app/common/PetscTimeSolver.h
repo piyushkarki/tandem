@@ -10,6 +10,7 @@
 
 #include <array>
 #include <cassert>
+#include <iostream>
 #include <memory>
 #include <tuple>
 
@@ -35,7 +36,7 @@ public:
     template <typename TimeOp>
     PetscTimeSolver(TimeOp& timeop, std::array<std::unique_ptr<PetscVector>, NumStateVecs> state)
         : PetscTimeSolverBase(timeop.comm()), state_(std::move(state)) {
-
+        double aggregator = 0.0;
         Vec x[NumStateVecs];
         for (std::size_t n = 0; n < NumStateVecs; ++n) {
             x[n] = state_[n]->vec();
@@ -74,6 +75,7 @@ private:
         TimeOp* self = reinterpret_cast<TimeOp*>(ctx);
 
         std::array<Vec, 2 * NumStateVecs> x;
+        double aggregator = 0.0;
         for (std::size_t n = 0; n < NumStateVecs; ++n) {
             CHKERRTHROW(VecNestGetSubVec(u, n, &x[n]));
             CHKERRTHROW(VecNestGetSubVec(F, n, &x[NumStateVecs + n]));
@@ -83,8 +85,18 @@ private:
                 return {PetscVectorView(x)...};
             },
             x);
+        auto comm = self->comm();
+        int rank;
+        CHKERRTHROW(MPI_Comm_rank(comm, &rank));
+        std::apply([&self, &t, &aggregator](auto&... xv) { self->rhs(aggregator, t, xv...); },
+                   x_view);
+        double global_aggregator = 0.0;
 
-        std::apply([&self, &t](auto&... xv) { self->rhs(t, xv...); }, x_view);
+        CHKERRTHROW(MPI_Allreduce(&aggregator, &global_aggregator, 1, MPI_DOUBLE, MPI_SUM, comm));
+
+        if (rank == 0) {
+            std::cout << "Moment rate at " << t <<"s and dt " <<ts <<" s: "<< global_aggregator << std::endl;
+        }
         return 0;
     }
 

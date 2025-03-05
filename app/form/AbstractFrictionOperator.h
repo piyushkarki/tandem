@@ -24,7 +24,7 @@ public:
 
     virtual void pre_init(BlockVector& state) = 0;
     virtual void init(double time, BlockVector const& traction, BlockVector& state) = 0;
-    virtual void rhs(double time, BlockVector const& traction, BlockVector const& state,
+    virtual void rhs(double& aggregator, double time, BlockVector const& traction, BlockVector const& state,
                      BlockVector& result) = 0;
 
     virtual auto state(double time, BlockVector const& traction, BlockVector const& state,
