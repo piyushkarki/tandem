@@ -58,7 +58,7 @@ void RateAndStateBase::prepare(std::size_t faultNo, FacetInfo const& info,
     }
     allDeterminantJ.push_back(detElem);
     std::vector<double> weightDetProduct;
-    auto rvw = 0.2;
+    auto rvw = 0.3;
     for (std::size_t i = 0; i < determinantJ.shape(0); ++i) {
         if (distance<=rvw){
             weightDetProduct.push_back(wgts[i] * std::abs(determinantJ(i)));
