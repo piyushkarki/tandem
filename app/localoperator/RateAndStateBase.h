@@ -44,10 +44,11 @@ public:
     void end_preparation() {}
 
     auto const& space() const { return space_; }
+    std::vector<std::vector<double>> allWeightDetProducts;
 
 protected:
     std::shared_ptr<Curvilinear<DomainDimension>> cl_;
-
+    std::size_t nq;
     // Basis
     NodalRefElement<DomainDimension - 1u> space_;
     std::vector<Managed<Matrix<double>>> geoE_q;
@@ -59,12 +60,29 @@ protected:
     //
     std::vector<Managed<Tensor<double, 3u>>> geoDxi_q;
     std::vector<std::vector<double>> allDeterminantJ;
-    std::vector<std::vector<double>> allWeightDetProducts;
+
     struct Coords {
         using type = std::array<double, DomainDimension>;
     };
-    using fault_t = mneme::MultiStorage<mneme::DataLayout::SoA, Coords>;
+    struct FaultBasis {
+        using type = std::array<double, DomainDimension * DomainDimension>;
+    };
+    struct SignFlipped {
+        using type = bool;
+    };
+    struct Normal {
+        using type = std::array<double, DomainDimension>;
+    };
+    struct NormalLength {
+        using type = double;
+    };
+    std::array<double, DomainDimension> ref_normal_={0,-1,0};
+
+    using fault_t = mneme::MultiStorage<mneme::DataLayout::SoA, Coords, FaultBasis, SignFlipped,
+                                        Normal, NormalLength>;
     mneme::StridedView<fault_t> fault_;
+    std::array<double, DomainDimension> up_ = {0,0,1};
+    Tensor<double,3> fault_basis_q;
 };
 
 } // namespace tndm
