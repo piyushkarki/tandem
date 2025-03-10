@@ -47,5 +47,19 @@ void Adapter<Elasticity>::slip(std::size_t faultNo, Vector<double const>& state,
     krnl.slip_q = slip_q.data();
     krnl.execute();
 }
+template <>
+void Adapter<Elasticity>::slip_rate(std::size_t faultNo, Vector<double const>& state,
+                               Matrix<double>& slip_rate_q) const {
+    
+    assert(slip_rate_q.shape(0) == DomainDimension);
+    assert(slip_rate_q.shape(1) == elasticity_adapter::tensor::slip_rate_q::Shape[1]);
 
+    elasticity_adapter::kernel::evaluate_slip_rate krnl;
+    krnl.copy_slip_rate = elasticity_adapter::init::copy_slip_rate::Values;
+    krnl.e_q = e_q.data();
+    krnl.fault_basis_q = fault_[faultNo].template get<FaultBasis>().data()->data();
+    krnl.slip_rate = state.data();
+    krnl.slip_rate_q = slip_rate_q.data();
+    krnl.execute();
+}
 } // namespace tndm

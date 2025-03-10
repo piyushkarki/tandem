@@ -3,7 +3,7 @@
 
 #include "RateAndStateBase.h"
 #include "config.h"
-
+#include "ElasticityAdapter.cpp"
 #include "geometry/Vector.h"
 #include "quadrules/AutoRule.h"
 #include "tensor/EigenMap.h"
@@ -65,6 +65,8 @@ public:
                Vector<double const>& state, Matrix<double>& result, LinearAllocator<double>&) const;
     auto params_prototype(std::size_t numLocalElements) const;
     void params(std::size_t faultNo, Matrix<double>& result, LinearAllocator<double>&) const;
+    void slip_rate(std::size_t faultNo, Vector<double const>& state,
+        Matrix<double>& slip_rate_q) const;
 
 private:
     template <typename T> auto state_mat(Vector<T>& state) const {
@@ -229,16 +231,6 @@ double RateAndState<Law>::rhs(double& aggregator, double time, std::size_t fault
         r_mat(node, PsiIndex) = law_.state_rhs(index + node, V, psi); // 10 x 2
     }
     auto weights = allWeightDetProducts[faultNo];
-    auto slip_rate_q = matmul(interpolate_matrix_basis_to_quad, slip_rates);
-    auto total = 0.0;
-    std::array<double, 2> sum = {0.0, 0.0};
-    for (int i = 0; i < slip_rate_q.shape(1); i++) {
-        for (int j = 0; j < slip_rate_q.shape(0); j++) {
-            sum[i] += slip_rate_q(j, i) * weights[j];
-        }
-    }
-    total = sqrt(sum[0] * sum[0] + sum[1] * sum[1]) * 1e6 * 32.04 * 1e9;
-    aggregator += total;
     if (source_) {
         auto coords = fault_[faultNo].template get<Coords>();
         std::array<double, DomainDimension + 1> xt;
@@ -313,7 +305,7 @@ template <class Law> auto RateAndState<Law>::params_prototype(std::size_t numLoc
     return FiniteElementFunction<DomainDimension - 1u>(space_.clone(), law_.param_names(),
                                                        numLocalElements);
 }
-
+// this is whree I guess
 template <class Law>
 void RateAndState<Law>::params(std::size_t faultNo, Matrix<double>& result,
                                LinearAllocator<double>&) const {
@@ -325,7 +317,20 @@ void RateAndState<Law>::params(std::size_t faultNo, Matrix<double>& result,
         law_.params(index + node, row);
     }
 }
+template <class Law>
+void RateAndState<Law>::slip_rate(std::size_t faultNo, Vector<double const>& state,
+                               Matrix<double>& slip_rate_q) const {
+    assert(slip_rate_q.shape(0) == DomainDimension);
+    assert(slip_rate_q.shape(1) == tndm::elasticity_adapter::tensor::slip_rate_q::Shape[1]);
 
+    elasticity_adapter::kernel::evaluate_slip_rate krnl;
+    krnl.copy_slip_rate = elasticity_adapter::init::copy_slip_rate::Values;
+    krnl.e_q = interpolate_matrix_basis_to_quad.data();
+    krnl.fault_basis_q = fault_basis_q.data();
+    krnl.slip_rate = state.data();
+    krnl.slip_rate_q = slip_rate_q.data();
+    krnl.execute();
+}
 } // namespace tndm
 
 #endif // RATEANDSTATE_20201026_H

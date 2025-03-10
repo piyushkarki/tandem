@@ -4,6 +4,7 @@
 #include "config.h"
 #include "form/AbstractFrictionOperator.h"
 
+#include "SeasQDOperator.h"
 #include "form/BoundaryMap.h"
 #include "form/DGOperatorTopo.h"
 #include "form/FiniteElementFunction.h"
@@ -12,13 +13,11 @@
 #include "tensor/Tensor.h"
 #include "util/Range.h"
 #include "util/Scratch.h"
-
 #include <mpi.h>
 
 #include <cstddef>
 #include <memory>
 #include <utility>
-#include <iostream>
 
 namespace tndm {
 
@@ -82,12 +81,25 @@ public:
             auto traction_block = traction_handle.subtensor(slice{}, faultNo);
             auto state_block = state_handle.subtensor(slice{}, faultNo);
             auto result_block = result_handle.subtensor(slice{}, faultNo);
-            
-            double VMax =
-                lop_->rhs(aggregator, time, faultNo, traction_block, state_block, result_block, scratch_);
+            double VMax = lop_->rhs(aggregator, time, faultNo, traction_block, state_block,
+                                    result_block, scratch_);
+            alignas(ALIGNMENT) double f_q_raw[45];
+            auto f_q = Matrix<double>(f_q_raw, LocalOperator::NumQuantities, 15);
+            auto const_result =
+                tndm::Vector<const double>(result_block.data(), result_block.shape());
+            lop_->slip_rate(faultNo, const_result, f_q);
+            auto weights = lop_->allWeightDetProducts[faultNo];
+            std::array<double, 3> sum = {0.0, 0.0, 0.0};
+            for (int i = 0; i < f_q.shape(0); ++i) {
+                for (int j = 0; j < f_q.shape(1); ++j) {
+                    sum[i] += f_q(i, j) * weights[j];
+                }
+            }
+            aggregator +=
+                std::sqrt(sum[0] * sum[0] + sum[2] * sum[2]) * 1e6 * 32.04 * 1e9;
             VMax_ = std::max(VMax_, VMax);
         }
-        // TS post hook - time integrator 
+        // TS post hook - time integrator
         // Callback already provided for the output
         result.end_access(result_handle);
         state.end_access_readonly(state_handle);
