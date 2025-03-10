@@ -21,6 +21,18 @@ def add(generator, dim, nbf_fault, nq):
         'evaluate_slip', slip_q['pq'] <=
             e_q['lq'] * fault_basis_q['poq'] * slip['ln'] * copy_slip['no'])
 
+
+    copy_slip_rate = Tensor('copy_slip_rate', (dim - 1, dim),
+                       spp={(d - 1, d): '1.0'
+                            for d in range(1, dim)},
+                       memoryLayoutClass=CSCMemoryLayout)
+    slip_rate = Tensor('slip_rate', (nbf_fault, dim - 1))
+    slip_rate_q = Tensor('slip_rate_q', (dim, nq))
+
+    generator.add(
+        'evaluate_slip_rate', slip_rate_q['pq'] <=
+            e_q['lq'] * fault_basis_q['poq'] * slip_rate['ln'] * copy_slip_rate['no'])
+
     traction_q = Tensor('traction_q', (dim, nq))
     traction = Tensor('traction', (nbf_fault, dim))
     generator.add('evaluate_traction', traction['kp'] <= minv['lk'] * e_q_T['ql'] * w['q'] * \
