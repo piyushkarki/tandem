@@ -95,8 +95,8 @@ public:
                     sum[i] += f_q(i, j) * weights[j];
                 }
             }
-            aggregator +=
-                std::sqrt(sum[0] * sum[0] + sum[2] * sum[2]) * 1e6 * 32.04 * 1e9;
+            // aggregator +=
+            //     std::sqrt(sum[0] * sum[0] + sum[2] * sum[2]) * 1e6 * 32.04 * 1e9;
             VMax_ = std::max(VMax_, VMax);
         }
         // TS post hook - time integrator
