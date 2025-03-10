@@ -89,12 +89,12 @@ public:
                 tndm::Vector<const double>(result_block.data(), result_block.shape());
             lop_->slip_rate(faultNo, const_result, f_q);
             auto weights = lop_->allWeightDetProducts[faultNo];
-            std::array<double, 3> sum = {0.0, 0.0, 0.0};
-            for (int i = 0; i < f_q.shape(0); ++i) {
-                for (int j = 0; j < f_q.shape(1); ++j) {
-                    sum[i] += f_q(i, j) * weights[j];
-                }
-            }
+            // std::array<double, 3> sum = {0.0, 0.0, 0.0};
+            // for (int i = 0; i < f_q.shape(0); ++i) {
+            //     for (int j = 0; j < f_q.shape(1); ++j) {
+            //         sum[i] += f_q(i, j) * weights[j];
+            //     }
+            // }
             // aggregator +=
             //     std::sqrt(sum[0] * sum[0] + sum[2] * sum[2]) * 1e6 * 32.04 * 1e9;
             VMax_ = std::max(VMax_, VMax);
