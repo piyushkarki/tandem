@@ -5,7 +5,7 @@ on:
 
 env:
   PETSC_CACHE_FOLDER: ${{ github.workspace }}/.petsc
-  HDF5_CACHE_FOLDER: ${{ github.workspace }}/.HDF5
+  HDF5_CACHE_FOLDER: ${{ github.workspace }}/.hdf5
   ARCHITECTURE: arch-linux-c-opt
 
 jobs:
@@ -59,6 +59,14 @@ jobs:
           key: ubuntu-${{ env.UBUNTU_VERSION }}-petsc-${{ env.PETSC_VERSION }}-${{ matrix.compiler.cc }}-${{ env.ARCHITECTURE }}
           restore-keys: ubuntu-${{ env.UBUNTU_VERSION }}-petsc-${{ env.PETSC_VERSION }}-${{ matrix.compiler.cc }}-${{ env.ARCHITECTURE }}
 
+      - name: Cache HDF5 Installation
+        id: cache-hdf5
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HDF5_CACHE_FOLDER }}
+          key: ubuntu-${{ env.UBUNTU_VERSION }}-hdf5-1.12.3-${{ matrix.compiler.cc }}-${{ env.ARCHITECTURE }}
+          restore-keys: ubuntu-${{ env.UBUNTU_VERSION }}-hdf5-1.12.3-${{ matrix.compiler.cc }}-${{ env.ARCHITECTURE }}
+
       - name: Install PETSc
         if: steps.cache-petsc.outputs.cache-hit != 'true'
         run: |
@@ -77,10 +85,11 @@ jobs:
           make PETSC_DIR=`pwd` PETSC_ARCH=${{ env.ARCHITECTURE }} install
           cd ..
       - name: Install HDF5
+        if: steps.cache-hdf5.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           version=1.12.3
-          install_dir=${{ github.workspace }}/.hdf5
+          install_dir=${{ env.HDF5_CACHE_FOLDER }}
           mkdir -p $install_dir
 
           wget https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-${version}/src/hdf5-${version}.tar.gz
@@ -103,7 +112,7 @@ jobs:
           set -euo pipefail
           mkdir build && cd build
           cmake .. \
-                -DCMAKE_PREFIX_PATH=${{ env.PETSC_CACHE_FOLDER }};${{ env.HDF5_DIR }} \
+                -DCMAKE_PREFIX_PATH=${{ env.PETSC_CACHE_FOLDER }};${{ env.HDF5_CACHE_FOLDER }} \
                 -DDOMAIN_DIMENSION=3 \
                 -DPOLYNOMIAL_DEGREE=2 \
                 -DCMAKE_C_COMPILER=${{ matrix.compiler.cc }} \
