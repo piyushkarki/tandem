@@ -30,6 +30,7 @@ def add(generator, dim, nbf_fault, nq):
     slip_rate = Tensor('slip_rate', (nbf_fault, dim))
     slip_rate_q = Tensor('slip_rate_q', (dim, nq))
     moment_rate = Tensor('moment_rate', (dim,))
+    integrated_slip = Tensor('integrated_slip', (dim,))
 
     generator.add(
         'evaluate_slip_rate', slip_rate_q['pq'] <=
@@ -37,3 +38,6 @@ def add(generator, dim, nbf_fault, nq):
     generator.add(
         'evaluate_moment_rate', moment_rate['p'] <=
             w['q'] * slip_rate_q['pq'] * nl_q['q'] * mu['q'])
+    generator.add(
+        'evaluate_integrated_slip', integrated_slip['p'] <=
+            w['q'] * slip_q['pq'] * nl_q['q'] * mu['q'])

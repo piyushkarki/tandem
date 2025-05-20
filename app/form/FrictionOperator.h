@@ -37,6 +37,7 @@ public:
         }
         lop_->end_preparation();
         moment_rate_.resize(num_local_elements() * (DomainDimension - 1));
+        integrated_fault_slip_.resize(num_local_elements() * (DomainDimension - 1));
     }
 
     std::size_t block_size() const override { return lop_->block_size(); }
@@ -44,6 +45,7 @@ public:
     std::size_t num_local_elements() const override { return fault_map_->local_size(); }
     double VMax_local() const override { return VMax_; }
     std::vector<double> moment_rate_local() const override { return moment_rate_; }
+    std::vector<double> integrated_fault_slip_local() const override { return integrated_fault_slip_; }
     std::size_t num_elements() const { return fault_map_->size(); }
     MPI_Comm comm() const { return topo_->comm(); }
     BoundaryMap const& fault_map() const { return *fault_map_; }
@@ -96,6 +98,7 @@ public:
         VMax_ = 0.0;
         scratch_.reset();
         moment_rate_ = {};
+        integrated_fault_slip_ = {};
         auto nq = quadRuleSize_;
         for (std::size_t faultNo = 0, num = num_local_elements(); faultNo < num; ++faultNo) {
             auto traction_block = traction_handle.subtensor(slice{}, faultNo);
@@ -107,7 +110,7 @@ public:
             if (ierr == 2) {
                 rhs_success = false;
             }
-
+            
             VMax_ = std::max(VMax_, VMax);
 
             // Interpolate slip rate values at Basis function nodes to quadrature
@@ -127,6 +130,21 @@ public:
             adapter_->moment_rate(faultNo, moment_rate_q, slip_rate_q, fctNo, info);
             for (int i = 0; i < DomainDimension - 1; i++) {
                 moment_rate_.push_back(moment_rate_q(0, i));
+            }
+
+            // Interpolate slip values from state at Basis function nodes to quadrature nodes
+            alignas(ALIGNMENT) double slip_q_raw[LocalOperator::NumQuantities * nq];
+            auto slip_q = Matrix<double>(slip_q_raw, LocalOperator::NumQuantities, nq);
+            auto slip_reshaped =
+                tndm::Vector<const double>(state_block.data(), state_block.shape());
+            adapter_->slip_rate(faultNo, slip_reshaped, slip_q);
+
+            // Compute integrated slip using slip values at quadrature nodes
+            alignas(ALIGNMENT) double integrated_slip_q_raw[DomainDimension];
+            auto integrated_slip_q = Matrix<double>(integrated_slip_q_raw, 1, DomainDimension);
+            adapter_->integrated_slip(faultNo, integrated_slip_q, slip_q, fctNo, info);
+            for (int i = 0; i < DomainDimension - 1; i++) {
+                integrated_fault_slip_.push_back(integrated_slip_q(0, i));
             }
         }
 
@@ -250,6 +268,7 @@ private:
     Scratch<double> scratch_;
     double VMax_ = 0.0;
     std::vector<double> moment_rate_ = {};
+    std::vector<double> integrated_fault_slip_ = {};
     int quadRuleSize_ = 0;
 };
 

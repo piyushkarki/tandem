@@ -23,6 +23,8 @@ public:
                    Matrix<double>& slip_rate_q) const;
     void moment_rate(std::size_t faultNo, Matrix<double>& moment_rate_vector,
                      Matrix<double>& slip_rate_q, Matrix<double>& mu_field) const;
+    void integrated_slip(std::size_t faultNo, Matrix<double>& integrated_slip_vector,
+                         Matrix<double>& slip_q, Matrix<double>& mu_field) const;
 };
 
 } // namespace tndm

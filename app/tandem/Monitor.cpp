@@ -21,6 +21,8 @@ void MonitorQD::monitor(double time, BlockVector const& state) {
     if (!writers_.empty()) {
         double VMax = reduce_VMax(seasop_->friction().VMax_local(), seasop_->comm());
         auto moment_rate = seasop_->friction().moment_rate_local();
+        auto integrated_slip_vector = seasop_->friction().integrated_fault_slip_local();
+        
         bool require_traction = false;
         bool require_displacement = false;
         for (auto const& writer : writers_) {
@@ -48,6 +50,10 @@ void MonitorQD::monitor(double time, BlockVector const& state) {
                     break;
                 }
                 case DataLevel::Heirarchichal: {
+                    writer->write(time, integrated_slip_vector);
+                    break;
+                }
+                case DataLevel::Heirarchichal_rate: {
                     writer->write(time, moment_rate);
                     break;
                 }
@@ -75,7 +81,11 @@ void MonitorQD::write_static() {
             writer->write_static(mneme::span(&data, 1));
             break;
         }
-        case DataLevel::Heirarchichal: {
+        case (DataLevel::Heirarchichal) : {
+            writer->write_static();
+            break;
+        }
+        case (DataLevel::Heirarchichal_rate) : {
             writer->write_static();
             break;
         }
@@ -88,6 +98,7 @@ void MonitorFD::monitor(double time, BlockVector const& v, BlockVector const& u,
     if (!writers_.empty()) {
         double VMax = reduce_VMax(seasop_->friction().VMax_local(), seasop_->comm());
         std::vector<double> moment_rate = seasop_->friction().moment_rate_local();
+        auto integrated_slip_vector = seasop_->friction().integrated_fault_slip_local();
 
         for (auto const& writer : writers_) {
             if (writer->is_write_required(time, VMax)) {

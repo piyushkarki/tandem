@@ -226,8 +226,11 @@ void setConfigSchema(TableSchema<Config>& schema,
     auto& faultOutputSchema = schema.add_table("fault_output", &Config::fault_output);
     auto& momentRateOutputSchema =
         schema.add_table("moment_rate_output", &Config::moment_rate_output);
+    auto& momentOutputSchema =
+        schema.add_table("moment_output", &Config::moment_output);
     detail::setOutputConfigSchema(faultOutputSchema);
     detail::setOutputConfigSchema(momentRateOutputSchema);
+    detail::setOutputConfigSchema(momentOutputSchema);
     auto& faultScalarOutputSchema =
         schema.add_table("fault_scalar_output", &Config::fault_scalar_output);
     detail::setTabularOutputConfigSchema(faultScalarOutputSchema);

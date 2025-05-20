@@ -31,7 +31,7 @@
 
 namespace tndm::seas {
 
-enum class DataLevel { Scalar, Boundary, Volume, Heirarchichal };
+enum class DataLevel { Scalar, Boundary, Volume, Heirarchichal, Heirarchichal_rate };
 
 class Writer {
 public:
@@ -239,12 +239,19 @@ template <std::size_t D> class MomentRateWriter : public Writer {
 public:
     MomentRateWriter(std::string_view prefix, AdaptiveOutputInterval oi,
                      LocalSimplexMesh<D> const& mesh, std::shared_ptr<Curvilinear<D>> cl,
-                     unsigned degree, BoundaryMap const& bnd_map, MPI_Comm comm)
+                     unsigned degree, BoundaryMap const& bnd_map, MPI_Comm comm,
+                     std::string_view dataset_name)
         : Writer(prefix, oi), writer_(prefix, comm),
           adapter_(mesh, std::move(cl), bnd_map.localFctNos(), degree), degree_(degree),
-          comm_(std::move(comm)) {}
+          comm_(std::move(comm)), dataset_name_(std::move(dataset_name)) {}
 
-    DataLevel level() const override { return DataLevel::Heirarchichal; }
+    DataLevel level() const override {
+        if (dataset_name_ == "moment") {
+            return DataLevel::Heirarchichal;
+        } else {
+            return DataLevel::Heirarchichal_rate;
+        }
+    }
     bool has_static_writer() const override { return true; }
     void write(double time, std::vector<double> data) override {
         // Get the vertex data from the adapter
@@ -256,7 +263,7 @@ public:
 
         if (momentRateDataset_ == -1) {
             momentRateDataset_ = writer_.createExtendibleDataset(
-                "momentRate", H5T_IEEE_F64LE, {numElements, 1, D - 1},
+                dataset_name_, H5T_IEEE_F64LE, {numElements, 1, D - 1},
                 {numElements, H5S_UNLIMITED, D - 1}, glueDimensionMoment);
         }
         // Write the data
@@ -315,6 +322,7 @@ private:
     CurvilinearBoundaryHDF5Adapter<D> adapter_;
     unsigned degree_;
     MPI_Comm comm_;
+    std::string_view dataset_name_;
     std::vector<std::array<std::array<double, D>, 3>> faultVertices;
     hid_t momentRateDataset_ = -1;
     hid_t timeStepDataset_ = -1;

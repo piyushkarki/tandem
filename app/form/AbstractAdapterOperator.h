@@ -29,6 +29,9 @@ public:
     virtual void moment_rate(std::size_t faultNo, Matrix<double>& moment_rate_vector,
                              Matrix<double>& slip_rate_q, std::size_t fctNo,
                              FacetInfo const& info) = 0;
+    virtual void integrated_slip(std::size_t faultNo, Matrix<double>& moment_rate_vector,
+                             Matrix<double>& slip_rate_q, std::size_t fctNo,
+                             FacetInfo const& info) = 0;
 };
 
 } // namespace tndm

@@ -88,7 +88,18 @@ public:
         alignas(ALIGNMENT) double mu_field_raw[nq];
         auto mu_field = Matrix<double>(mu_field_raw, 1, nq);
         adapted_lop_->mu_avg(fctNo, info, mu_field);
+        // kernel functions
         lop_->moment_rate(faultNo, moment_rate_vector, slip_rate_q, mu_field);
+    }
+    void integrated_slip(std::size_t faultNo, Matrix<double>& integrated_slip_vector,
+                     Matrix<double>& slip_q, std::size_t fctNo,
+                     FacetInfo const& info) override {
+        std::size_t nq = slip_q.shape(1);
+        alignas(ALIGNMENT) double mu_field_raw[nq];
+        auto mu_field = Matrix<double>(mu_field_raw, 1, nq);
+        adapted_lop_->mu_avg(fctNo, info, mu_field);
+        // kernel functions
+        lop_->integrated_slip(faultNo, integrated_slip_vector, slip_q, mu_field);
     }
 
 private:

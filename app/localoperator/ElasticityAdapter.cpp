@@ -73,4 +73,19 @@ void Adapter<Elasticity>::moment_rate(std::size_t faultNo, Matrix<double>& momen
     krnl.execute();
 }
 
+template <>
+void Adapter<Elasticity>::integrated_slip(std::size_t faultNo, Matrix<double>& integrated_slip_vector,
+                                          Matrix<double>& slip_q,
+                                          Matrix<double>& mu_field) const {
+    assert(integrated_slip_vector.shape()[1] ==
+           elasticity_adapter::tensor::integrated_slip::Shape[0]);
+    elasticity_adapter::kernel::evaluate_integrated_slip krnl;
+    krnl.slip_q = slip_q.data();
+    krnl.mu = mu_field.data();
+    krnl.integrated_slip = integrated_slip_vector.data();
+    krnl.w = quad_rule_.weights().data();
+    krnl.nl_q = fault_[faultNo].template get<NormalLength>().data();
+    krnl.execute();
+}
+
 } // namespace tndm

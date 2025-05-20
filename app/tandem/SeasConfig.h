@@ -102,6 +102,7 @@ struct Config {
     std::optional<GfCheckpointConfig> gf_checkpoint_config;
     TsCheckpointConfig ts_checkpoint_config;
     std::optional<OutputConfig> moment_rate_output;
+    std::optional<OutputConfig> moment_output;
 };
 
 void setConfigSchema(TableSchema<Config>& schema,
