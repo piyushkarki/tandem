@@ -18,6 +18,7 @@ jobs:
 
       - name: run-clang-format
         run: |
+          pwd
           set -euo pipefail
           clang-format --version
           which clang-format
