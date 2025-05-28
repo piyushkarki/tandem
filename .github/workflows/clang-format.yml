@@ -5,7 +5,9 @@ on:
 jobs:
   clang-format:
     name: clang-format
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
+    container:
+      image: piyushkarki/tandem:latest
     steps:
       - uses: actions/checkout@v4
 
