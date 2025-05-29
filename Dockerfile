@@ -89,45 +89,8 @@ RUN . /opt/venv/bin/activate && \
 
 RUN echo "Dependencies Installed Successfully. Installing Tandem source code."
 
-# -----------------------------------------------------------------------
-# STAGE 3: Build 2D and 3D versions of Tandem
-# -----------------------------------------------------------------------
-FROM tandem_dependencies AS tandem_build
-
 WORKDIR /app
 
-# Pull the Tandem source code
-COPY . /app
-
-# Create build directories
-RUN mkdir build_2d_p3 build_3d_p3
-
-# Build 2D version
-WORKDIR /app/build_2d_p3
-RUN cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH=${PETSC_INSTALL_DIR} \
-    -DDOMAIN_DIMENSION=2 \
-    -DPOLYNOMIAL_DEGREE=3 \
-    -DCMAKE_C_COMPILER=${CC} \
-    -DCMAKE_CXX_COMPILER=${CXX} && \
-    make -j$(nproc) && \
-    make test
-
-# Build 3D version
-WORKDIR /app/build_3d_p3
-RUN cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH=${PETSC_INSTALL_DIR} \
-    -DDOMAIN_DIMENSION=3 \
-    -DPOLYNOMIAL_DEGREE=3 \
-    -DCMAKE_C_COMPILER=${CC} \
-    -DCMAKE_CXX_COMPILER=${CXX} && \
-    make -j$(nproc) && \
-    make test
-
-# Final cleanup or listing
-WORKDIR /app
 RUN ls -lah /app && chown -R tandem:tandem /app
 
 # Switch to non-root user
