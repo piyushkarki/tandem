@@ -54,3 +54,7 @@ doctest_discover_tests(test-tensor)
 add_executable(test-util util.cpp)
 target_link_libraries(test-util test-runner)
 doctest_discover_tests(test-util)
+
+add_executable(test-H5Parser H5Parser.cpp)
+target_link_libraries(test-H5Parser test-runner-mpi)
+doctest_discover_tests(test-H5Parser)
